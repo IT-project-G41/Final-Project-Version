@@ -1,9 +1,12 @@
-Shader "Custom/Toonifu2D"
+Shader "Custom/Toonify2D"
 {
     Properties
     {
         _Color ("Color", Color) = (1,1,1,1)
         _MainTex ("Albedo (RGB)", 2D) = "white" {}
+        _Brightness ("Brightness", Float) = 1.8
+        _Satruation ("Saturation", Float) = 0.85
+        _Constart ("Constart", Float) = 2.04
     }
     SubShader
     {
@@ -15,7 +18,9 @@ Shader "Custom/Toonifu2D"
 
         sampler2D _MainTex;
         half4 _MainTex_TexelSize;
-        
+        half _Brightness;
+        half _Satruation;
+        half _Constart;
 
 
 
@@ -27,18 +32,18 @@ Shader "Custom/Toonifu2D"
         };
 
 
-        //返回某一点的rbg加和
+        // return the sum of rgb
         fixed getRGBSum(fixed3 color){
             return color.r + color.g + color.b;
         }
 
 
-        //计算灰度值
+        // calculate the lumiance
         fixed lumiance(fixed3 color){
             return 0.2125 * color.r + 0.7154 * color.g + 0.0721 * color.b;
         }
 
-        //中值滤波
+        //median filter function
         fixed3 medianFilter(half2 uv){
                 //half2 uv = f.uv;
                 
@@ -50,37 +55,7 @@ Shader "Custom/Toonifu2D"
                                 uv - float2(_MainTex_TexelSize.x * 3.0, _MainTex_TexelSize.y * 2.0), uv - float2(_MainTex_TexelSize.x * 2.0, _MainTex_TexelSize.y * 2.0), uv - float2(_MainTex_TexelSize.x * 1.0, _MainTex_TexelSize.y * 2.0), uv - float2(0.0, _MainTex_TexelSize.y * 2.0), uv - float2(-_MainTex_TexelSize.x * 1.0, _MainTex_TexelSize.y * 2.0), uv - float2(-_MainTex_TexelSize.x * 2.0, _MainTex_TexelSize.y * 2.0), uv - float2(-_MainTex_TexelSize.x * 3.0, _MainTex_TexelSize.y * 2.0),
                                 uv - float2(_MainTex_TexelSize.x * 3.0, _MainTex_TexelSize.y * 3.0), uv - float2(_MainTex_TexelSize.x * 2.0, _MainTex_TexelSize.y * 3.0), uv - float2(_MainTex_TexelSize.x * 1.0, _MainTex_TexelSize.y * 3.0), uv - float2(0.0, _MainTex_TexelSize.y * 3.0), uv - float2(-_MainTex_TexelSize.x * 1.0, _MainTex_TexelSize.y * 3.0), uv - float2(-_MainTex_TexelSize.x * 2.0, _MainTex_TexelSize.y * 3.0), uv - float2(-_MainTex_TexelSize.x * 3.0, _MainTex_TexelSize.y * 3.0)};
                 
-                /*
-                half2 tex5[25] = {uv + _MainTex_TexelSize.xy * half2(-2, 2), uv + _MainTex_TexelSize.xy * half2(-1, 2), uv + _MainTex_TexelSize.xy * half2(0, 2), uv + _MainTex_TexelSize.xy * half2(1, 2), uv + _MainTex_TexelSize.xy * half2(2, 2), 
-                                uv + _MainTex_TexelSize.xy * half2(-2, 1), uv + _MainTex_TexelSize.xy * half2(-1, 1), uv + _MainTex_TexelSize.xy * half2(0, 1), uv + _MainTex_TexelSize.xy * half2(1, 1), uv + _MainTex_TexelSize.xy * half2(2, 1), 
-                                uv + _MainTex_TexelSize.xy * half2(-2, 0), uv + _MainTex_TexelSize.xy * half2(-1, 0), uv + _MainTex_TexelSize.xy * half2(0, 0), uv + _MainTex_TexelSize.xy * half2(1, 0), uv + _MainTex_TexelSize.xy * half2(2, 0), 
-                                uv + _MainTex_TexelSize.xy * half2(-2, -1), uv + _MainTex_TexelSize.xy * half2(-1, -1), uv + _MainTex_TexelSize.xy * half2(0, -1), uv + _MainTex_TexelSize.xy * half2(1, -1), uv + _MainTex_TexelSize.xy * half2(2, -1), 
-                                uv + _MainTex_TexelSize.xy * half2(-2, -2), uv + _MainTex_TexelSize.xy * half2(-1, -2), uv + _MainTex_TexelSize.xy * half2(0, -2), uv + _MainTex_TexelSize.xy * half2(1, -2), uv + _MainTex_TexelSize.xy * half2(2, -2)};
-
-
-                half2 tex[9] = {uv + float2(-_MainTex_TexelSize.x, _MainTex_TexelSize.y), uv + float2(0.0, _MainTex_TexelSize.y), uv + float2(_MainTex_TexelSize.x, _MainTex_TexelSize.y), 
-                                uv + float2(-_MainTex_TexelSize.x, 0.0), uv, uv + float2(_MainTex_TexelSize.x, 0.0), 
-                                uv - float2(_MainTex_TexelSize.x, _MainTex_TexelSize.y), uv - float2(0.0, _MainTex_TexelSize.y), uv - float2(-_MainTex_TexelSize.x, _MainTex_TexelSize.y)};
-
-
-                
-                half2 temp = tex[0];
-                
-                int index = 0;
-                [unroll]
-                for(int i = 0; i < 49; i++){
-                    [unroll]
-                    for(int j = i; j < 49; j++){
-                        [branch]
-                        if(lumiance(tex2D(_MainTex, tex7[j]).rgb) < lumiance(tex2D(_MainTex, tex7[index]).rgb)){
-                            index = j;
-                        }
-                    }
-                    half2 temp = tex7[i];
-                    tex7[i] = tex7[index];
-                    tex7[index] = tex7[i];
-                }
-                */
+           
 
 
                 fixed3 last = (0, 0, 0);
@@ -101,35 +76,33 @@ Shader "Custom/Toonifu2D"
 
 
                 return temp;
-
-
-                /*
-                int index = 0;
-                for(int i = 0; i < 25; i++){
-                    for(int j = i; j < 25; j++){
-                        if(getRGBSum(tex2D(_MainTex, tex5[j]).rgb) < getRGBSum(tex2D(_MainTex, tex5[index]).rgb)){
-                            index = j;
-                        }
-                    }
-                    half2 temp = tex5[i];
-                    tex5[i] = tex5[index];
-                    tex5[index] = tex5[i];
-                }
-
-                return tex2D(_MainTex, tex5[12]).rgb;
-                */
         }
 
 
-        //颜色量化
+        // quantize color function
         fixed3 QuantizeColors(fixed3 color){
-            //return fixed3(floor(float(color.r) * 0.04167), floor(float(color.g) * 0.04167), floor(float(color.b) * 0.04167)) * 24;
-            //return floor(color / 24) * 24;
             return floor(color * 255 * 0.04166667) * 24 * 0.00392157;
         }
 
 
-        //计算灰度值
+        // final color function
+        fixed3 ColorCalculation(fixed3 color){
+            fixed3 finalColor = QuantizeColors(color);
+            
+            // Brightness
+            finalColor = finalColor * _Brightness;
+
+            // Saturation
+            finalColor = lerp(lumiance(color), finalColor, _Satruation);
+
+            // Constart
+            finalColor = lerp(fixed3(0.5, 0.5, 0.5), finalColor, _Constart);
+            
+            return finalColor;
+        }
+
+
+        // calculate the color's luminance
         fixed luminance(fixed3 color){
             return 0.2125 * color.r + 0.7154 * color.g + 0.0721 * color.b;
         }
@@ -167,7 +140,7 @@ Shader "Custom/Toonifu2D"
 
 
 
-        //双边滤波
+        //bilateral fliter function
         fixed3 BilateralFliter(half2 uv){
                 half2 tex5[25] = {uv + _MainTex_TexelSize.xy * half2(-2, 2), uv + _MainTex_TexelSize.xy * half2(-1, 2), uv + _MainTex_TexelSize.xy * half2(0, 2), uv + _MainTex_TexelSize.xy * half2(1, 2), uv + _MainTex_TexelSize.xy * half2(2, 2), 
                                 uv + _MainTex_TexelSize.xy * half2(-2, 1), uv + _MainTex_TexelSize.xy * half2(-1, 1), uv + _MainTex_TexelSize.xy * half2(0, 1), uv + _MainTex_TexelSize.xy * half2(1, 1), uv + _MainTex_TexelSize.xy * half2(2, 1), 
@@ -224,9 +197,11 @@ Shader "Custom/Toonifu2D"
             fixed3 BF_color = BilateralFliter(f.uv);
 
             fixed3 midColor = medianFilter(f.uv);
-            fixed3 quantize_color = QuantizeColors(midColor * BF_color);
+            //fixed3 quantize_color = QuantizeColors(midColor * BF_color);
+            
+            fixed3 final_color = ColorCalculation(midColor * BF_color);
 
-            return fixed4(quantize_color * 1.7, 1);
+            return fixed4(final_color, 1);
         }
 
 
@@ -245,43 +220,7 @@ Shader "Custom/Toonifu2D"
             CGPROGRAM
             #pragma vertex vert  
 		    #pragma fragment fragEdges 
-           
-            /*
-            half2 getTextList(half2 uv){
-                half2 texList[49] = {};
-                texList[0] = uv;
-                texList[1] = uv + float2(0.0, _MainTex_TexelSize.y * 1.0);
-                texList[2] = uv + float2(0.0, _MainTex_TexelSize.y * 2.0);
-                texList[3] = uv + float2(0.0, _MainTex_TexelSize.y * 3.0);
-                texList[4] = uv - float2(0.0, _MainTex_TexelSize.y * 1.0);
-                texList[5] = uv - float2(0.0, _MainTex_TexelSize.y * 2.0);
-                texList[6] = uv - float2(0.0, _MainTex_TexelSize.y * 3.0);
-
-                for(int i = 1; i < 4; i++){
-                    int index = i * 2 - 1;    //1, 3, 5
-                    int index2 = index + 1;
-
-                    texList[index * 7] = uv + float2(_MainTex_TexelSize.x * i, 0.0);
-                    texList[index * 7 + 1] = texList[index * 7] + float2(0.0, _MainTex_TexelSize.y * 1.0);
-                    texList[index * 7 + 2] = texList[index * 7] + float2(0.0, _MainTex_TexelSize.y * 2.0);
-                    texList[index * 7 + 3] = texList[index * 7] + float2(0.0, _MainTex_TexelSize.y * 3.0);
-                    texList[index * 7 + 4] = texList[index * 7] - float2(0.0, _MainTex_TexelSize.y * 1.0);
-                    texList[index * 7 + 5] = texList[index * 7] - float2(0.0, _MainTex_TexelSize.y * 2.0);
-                    texList[index * 7 + 6] = texList[index * 7] - float2(0.0, _MainTex_TexelSize.y * 3.0);
-
-
-                    texList[index2 * 7] = uv - float2(_MainTex_TexelSize.x * i, 0.0);
-                    texList[index2 * 7 + 1] = texList[index2 * 7] + float2(0.0, _MainTex_TexelSize.y * 1.0);
-                    texList[index2 * 7 + 2] = texList[index2 * 7] + float2(0.0, _MainTex_TexelSize.y * 2.0);
-                    texList[index2 * 7 + 3] = texList[index2 * 7] + float2(0.0, _MainTex_TexelSize.y * 3.0);
-                    texList[index2 * 7 + 4] = texList[index2 * 7] - float2(0.0, _MainTex_TexelSize.y * 1.0);
-                    texList[index2 * 7 + 5] = texList[index2 * 7] - float2(0.0, _MainTex_TexelSize.y * 2.0);
-                    texList[index2 * 7 + 6] = texList[index2 * 7] - float2(0.0, _MainTex_TexelSize.y * 3.0);
-                }
-
-                return texList;
-            }
-            */
+          
 
             ENDCG
         }
