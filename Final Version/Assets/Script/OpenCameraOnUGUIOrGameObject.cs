@@ -3,6 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+
+/*
+ * This is a statement to declare the reference materials in this file
+ * The code in this file references and uses an open source code
+ * https://blog.csdn.net/u014361280/article/details/107374795
+ * 
+ * 
+ */
+
+
 public class OpenCameraOnUGUIOrGameObject : MonoBehaviour
 {
     public RawImage rawImage;//Camera rendering UI
